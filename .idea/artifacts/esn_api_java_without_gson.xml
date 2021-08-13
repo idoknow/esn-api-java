@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="esn-api-java-without_gson">
+    <output-path>$PROJECT_DIR$/out/artifacts/esn_api_java_without_gson</output-path>
+    <root id="archive" name="esn-api-java-without_gson.jar">
+      <element id="module-output" name="esn-api-java" />
+    </root>
+  </artifact>
+</component>

@@ -8,9 +8,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 public class ESNSession implements Runnable{
-    public static final String version="api-java-0.1";
+    public static final String version="api-java-0.2";
 
 
 
@@ -28,6 +29,7 @@ public class ESNSession implements Runnable{
     private ISessionListener listener;
 
     private Thread proxyThr;
+    boolean alreadyTimeout=false;
 
     public ESNSession(String addr, String user, String pass, long timeout, ISessionListener listener)throws Exception{
         Thread loginThr=new Thread(()->{
@@ -44,10 +46,13 @@ public class ESNSession implements Runnable{
         Thread timeThr=new Thread(()->{
             try {
                 Thread.sleep(timeout);
-                loginThr.stop();
+//                loginThr.stop();
+                alreadyTimeout=true;
             } catch (InterruptedException e) {
                 exception=e;
             }
+            if (!available)
+                this.exception=new TimeoutException("method time out.");
             synchronized (timeLock){
                 timeLock.notify();
             }
@@ -62,7 +67,10 @@ public class ESNSession implements Runnable{
     }
     private void login(String addr, String user, String pass, ISessionListener listener)throws Exception{
         this.listener=listener;
-        socket=new Socket(addr.split(":")[0],Integer.parseInt(addr.split(":")[1]));
+        String host=addr.split(":")[0];
+        int port=Integer.parseInt(addr.split(":")[1]);
+        Debug.debug("Dial:host:"+host+" port:"+port);
+        socket=new Socket(host,port);
         dataInputStream=new DataInputStream(socket.getInputStream());
         dataOutputStream=new DataOutputStream(socket.getOutputStream());
 
@@ -87,6 +95,9 @@ public class ESNSession implements Runnable{
         }
         this.privilege=(new NetPackage(this,"").getPackObj(PackReqPrivList.class)).Priv;
         Debug.debug("priv:"+privilege);
+
+        if (alreadyTimeout)
+            return;
 
         available=true;
         this.proxyThr=new Thread(this);
