@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
 public class ESNSession implements Runnable{
-    public static final String version="api-java-0.2";
+    public static final String version="api-java-0.3";
 
 
 
@@ -140,12 +140,10 @@ public class ESNSession implements Runnable{
     }
 
     public <T> T selectPack(String token,Class<T> tClass){
-        if (receivedMap.containsKey(token)){
-            return new Gson().fromJson(receivedMap.get(token).json,tClass);
-        }else {//已收到的包不存在，等待
-            NetPackage waitPack=new NetPackage();
-            waiterMap.put(token,waitPack);
-            synchronized (waiterMap.get(token)){
+        if (!receivedMap.containsKey(token)) {//已收到的包不存在，等待
+            NetPackage waitPack = new NetPackage();
+            waiterMap.put(token, waitPack);
+            synchronized (waiterMap.get(token)) {
                 try {
                     waitPack.wait();
                 } catch (InterruptedException e) {
@@ -154,8 +152,11 @@ public class ESNSession implements Runnable{
             }
             //收到了
             Debug.debug("Successfully selected a wait pack");
-            return new Gson().fromJson(receivedMap.get(token).json,tClass);
         }
+        T result1=new Gson().fromJson(receivedMap.get(token).json,tClass);
+        receivedMap.remove(token);
+        waiterMap.remove(token);
+        return result1;
     }
 
     public boolean isAvailable(){
@@ -173,7 +174,13 @@ public class ESNSession implements Runnable{
     }
 
 
-
+    public void pushNotification(String target,String title,String content)throws Exception{
+        String token=AbstractPack.randToken();
+        new PackPush(target,title,content,token).writeTo(this,false);
+        PackResult result=selectPack(token,PackResult.class);
+        if (!"".equals(result.Error))
+            throw new Exception(result.Error);
+    }
     public void requestNotifications(int from,int limit)throws Exception{
         String token=AbstractPack.randToken();
         new PackRequest(from,limit,token).writeTo(this,false);
