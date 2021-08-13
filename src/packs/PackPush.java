@@ -10,7 +10,7 @@ public class PackPush extends AbstractPack{
     public String Title;
     public String Content;
     public String Token;
-    private static final SimpleDateFormat formatter=new SimpleDateFormat("yyyy-MM-dd','HH:mm:ss z");
+    private static final SimpleDateFormat formatter=new SimpleDateFormat("yyyy-MM-dd','HH:mm:ss");
     public PackPush(String target,String title,String content,String token){
         this.code=3;
         this.Target=target;

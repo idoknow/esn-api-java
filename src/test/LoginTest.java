@@ -9,7 +9,7 @@ import util.Debug;
 public class LoginTest {
     public static void main(String[] args)throws Exception {
         Debug.debug=true;
-        ESNSession esnSession=new ESNSession("39.100.5.13:3003", "root", "turtle", 10000, new ISessionListener() {
+        ESNSession esnSession=new ESNSession("39.100.5.139:1034", "root", "turtle", 10000, new ISessionListener() {
             @Override
             public void notificationReceived(PackRespNotification notification) {
 
