@@ -233,7 +233,7 @@ public class ESNSession implements Runnable{
         return result1;
     }
 
-    public synchronized boolean isConnected()throws Exception{
+    private synchronized boolean isConnected()throws Exception{
         Debug.debug("Checking state");
         Boolean waiter=false;
         boolean succ=false;
