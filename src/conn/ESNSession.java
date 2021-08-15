@@ -42,6 +42,7 @@ public class ESNSession implements Runnable{
         Thread loginThr=new Thread(()->{
             try {
                 login(addr,user,pass,listener);
+                this.exception=null;
             } catch (Exception e) {
                 exception=e;
             }
@@ -74,12 +75,14 @@ public class ESNSession implements Runnable{
     }
     public boolean reConnect(String addr, String user, String pass)throws Exception{
         this.available=false;
+        this.alreadyTimeout=false;
         try{
             this.socket.close();
         }catch (Exception ignored){}
         Thread loginThr=new Thread(()->{
             try {
                 login(addr,user,pass,listener);
+                this.exception=null;
             } catch (Exception e) {
                 exception=e;
             }
@@ -160,6 +163,7 @@ public class ESNSession implements Runnable{
     public void dispose(){
         this.available=false;
         try {
+            this.alive.cancel();
             this.proxyThr.stop();
         }catch (Exception ignored){}
         try {
@@ -200,13 +204,13 @@ public class ESNSession implements Runnable{
         }catch (Exception e){
             e.printStackTrace();
         }
+        this.available=false;
         if (this.listener!=null){
             PackResult result=new PackResult();
             result.Error="connection closed";
             result.Result="";
             this.listener.sessionLogout(result);
         }
-        this.available=false;
     }
 
     public <T> T selectPack(String token,Class<T> tClass){
