@@ -9,6 +9,7 @@ import util.Debug;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 public class NetPackage {
     int size;
@@ -50,6 +51,11 @@ public class NetPackage {
     public <T> T getPackObj(Class<T> tClass){
         return new Gson().fromJson(json,tClass);
     }
+
+
+    public static HashMap<Long,String> writePackExceptions=new HashMap<>();
+
+
     public PackResult writePackWaitResult(ESNSession session)throws Exception{
 
         Debug.debug("writing pack wait result:"+json);
@@ -68,5 +74,9 @@ public class NetPackage {
         session.dataOutputStream.writeInt(crypto?1:0);
         session.dataOutputStream.write(data);
         session.dataOutputStream.flush();
+    }
+    private static long UID_INDEX=0;
+    public static synchronized long netPackUID(){
+        return UID_INDEX++;
     }
 }

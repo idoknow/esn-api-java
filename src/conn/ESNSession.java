@@ -7,12 +7,14 @@ import util.Debug;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeoutException;
 
 public class ESNSession implements Runnable{
     public static final String version="api-java-0.3";
-
 
     private Socket socket;
     DataInputStream dataInputStream;
@@ -29,8 +31,14 @@ public class ESNSession implements Runnable{
 
     private Thread proxyThr;
     boolean alreadyTimeout=false;
+    private long timeout=5000;
+
+    boolean failed3times=false;
+
+    private Timer alive=new Timer();
 
     public ESNSession(String addr, String user, String pass, long timeout, ISessionListener listener)throws Exception{
+        this.timeout=timeout;
         Thread loginThr=new Thread(()->{
             try {
                 login(addr,user,pass,listener);
@@ -63,6 +71,45 @@ public class ESNSession implements Runnable{
         if (exception!=null){
             throw exception;
         }
+    }
+    public boolean reConnect(String addr, String user, String pass)throws Exception{
+        this.available=false;
+        try{
+            this.socket.close();
+        }catch (Exception ignored){}
+        Thread loginThr=new Thread(()->{
+            try {
+                login(addr,user,pass,listener);
+            } catch (Exception e) {
+                exception=e;
+            }
+            synchronized (timeLock){
+                timeLock.notify();
+            }
+        });
+        loginThr.start();
+        Thread timeThr=new Thread(()->{
+            try {
+                Thread.sleep(timeout);
+//                loginThr.stop();
+                alreadyTimeout=true;
+            } catch (InterruptedException e) {
+                exception=e;
+            }
+            if (!available)
+                this.exception=new TimeoutException("method time out.");
+            synchronized (timeLock){
+                timeLock.notify();
+            }
+        });
+        timeThr.start();
+        synchronized (timeLock){
+            timeLock.wait();
+        }
+        if (exception!=null){
+            throw exception;
+        }
+        return available;
     }
     private void login(String addr, String user, String pass, ISessionListener listener)throws Exception{
         this.listener=listener;
@@ -101,6 +148,23 @@ public class ESNSession implements Runnable{
         available=true;
         this.proxyThr=new Thread(this);
         this.proxyThr.start();
+        this.alive.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    isConnected();
+                }catch (Exception ignored){}
+            }
+        },new Date(),300000);
+    }
+    public void dispose(){
+        this.available=false;
+        try {
+            this.proxyThr.stop();
+        }catch (Exception ignored){}
+        try {
+            this.socket.close();
+        }catch (Exception ignored){}
     }
 
     private HashMap<String,NetPackage> waiterMap=new HashMap<>();
@@ -136,6 +200,12 @@ public class ESNSession implements Runnable{
         }catch (Exception e){
             e.printStackTrace();
         }
+        if (this.listener!=null){
+            PackResult result=new PackResult();
+            result.Error="connection closed";
+            result.Result="";
+            this.listener.sessionLogout(result);
+        }
         this.available=false;
     }
 
@@ -157,6 +227,42 @@ public class ESNSession implements Runnable{
         receivedMap.remove(token);
         waiterMap.remove(token);
         return result1;
+    }
+
+    public synchronized boolean isConnected()throws Exception{
+        Debug.debug("Checking state");
+        Boolean waiter=false;
+        boolean succ=false;
+        this.exception=null;
+        Thread requestThr=new Thread(()->{
+            try {
+                String token = AbstractPack.randToken();
+                new PackTest(token).writeTo(this, false);
+                PackResult testResult = selectPack(token,PackResult.class);
+                synchronized (waiter){
+                    waiter.notify();
+                }
+            }catch (Exception e){
+                exception=e;
+            }
+        });
+        Thread countDown=new Thread(()->{
+            try{
+                Thread.sleep(timeout);
+                exception=new Exception("test timeout");
+            }catch (Exception e){
+                exception=e;
+            }
+            synchronized (waiter){
+                waiter.notify();
+            }
+        });
+        requestThr.start();
+        countDown.start();
+        synchronized (waiter){
+            waiter.wait();
+        }
+        return exception==null;
     }
 
     public boolean isAvailable(){
