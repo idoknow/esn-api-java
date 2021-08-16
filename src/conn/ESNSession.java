@@ -73,7 +73,7 @@ public class ESNSession implements Runnable{
             throw exception;
         }
     }
-    public boolean reConnect(String addr, String user, String pass)throws Exception{
+    public synchronized boolean reConnect(String addr, String user, String pass)throws Exception{
         this.available=false;
         this.alreadyTimeout=false;
         try{
