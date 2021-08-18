@@ -23,6 +23,7 @@ public class ESNSession implements Runnable{
     private int protocolVersion=0;
     String rsaKey="";
     boolean available=false;
+    final Boolean avaiLock=false;
     String privilege="";
 
     private final Boolean timeLock=false;
@@ -115,50 +116,55 @@ public class ESNSession implements Runnable{
         return available;
     }
     private void login(String addr, String user, String pass, ISessionListener listener)throws Exception{
-        this.listener=listener;
-        String host=addr.split(":")[0];
-        int port=Integer.parseInt(addr.split(":")[1]);
-        Debug.debug("Dial:host:"+host+" port:"+port);
-        socket=new Socket(host,port);
-        dataInputStream=new DataInputStream(socket.getInputStream());
-        dataOutputStream=new DataOutputStream(socket.getOutputStream());
+        synchronized (avaiLock) {
+            this.listener = listener;
+            String host = addr.split(":")[0];
+            int port = Integer.parseInt(addr.split(":")[1]);
+            Debug.debug("Dial:host:" + host + " port:" + port);
+            socket = new Socket(host, port);
+            dataInputStream = new DataInputStream(socket.getInputStream());
+            dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
-        dataOutputStream.writeInt(119812525);
-        protocolVersion=dataInputStream.readInt();
-        Debug.debug("protocolVersion:"+protocolVersion);
-        if (protocolVersion>1999){
-            throw new Exception("protocol not support:"+protocolVersion);
-        }
+            dataOutputStream.writeInt(119812525);
+            protocolVersion = dataInputStream.readInt();
+            Debug.debug("protocolVersion:" + protocolVersion);
+            if (protocolVersion > 1999) {
+                throw new Exception("protocol not support:" + protocolVersion);
+            }
 
 
 //        PackResult result=new NetPackage(AbstractPack.PACK_LOGIN,login,false,"").writePack(this);
-        PackResult result=new PackLogin(user, pass,AbstractPack.randToken()).writeToWaitResult(this,false);
-        Debug.debug("login result:"+result.Result+" err:"+result.Error);
-        if (!result.Error.equals("")){
-            throw new Exception(result.Error);
-        }
-
-        result=new PackReqPrivList(AbstractPack.randToken()).writeToWaitResult(this,false);
-        if (!result.Error.equals("")){
-            throw new Exception(result.Error);
-        }
-        this.privilege=(new NetPackage(this,"").getPackObj(PackReqPrivList.class)).Priv;
-        Debug.debug("priv:"+privilege);
-
-        if (alreadyTimeout)
-            return;
-
-        available=true;
-        this.proxyThr=new Thread(this);
-        this.proxyThr.start();
-        this.alive.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    isConnected();
-                }catch (Exception ignored){}
+            PackResult result = new PackLogin(user, pass, AbstractPack.randToken()).writeToWaitResult(this, false);
+            Debug.debug("login result:" + result.Result + " err:" + result.Error);
+            if (!result.Error.equals("")) {
+                throw new Exception(result.Error);
             }
-        },new Date(),300000);
+
+            result = new PackReqPrivList(AbstractPack.randToken()).writeToWaitResult(this, false);
+            if (!result.Error.equals("")) {
+                throw new Exception(result.Error);
+            }
+            this.privilege = (new NetPackage(this, "").getPackObj(PackReqPrivList.class)).Priv;
+            Debug.debug("priv:" + privilege);
+
+            if (alreadyTimeout)
+                return;
+
+            available = true;
+
+            Debug.debug("Available=" + available);
+            this.proxyThr = new Thread(this);
+            this.proxyThr.start();
+            this.alive.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        isConnected();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }, new Date(), 300000);
+        }
     }
     public void dispose(){
         this.available=false;
@@ -266,11 +272,14 @@ public class ESNSession implements Runnable{
         synchronized (waiter){
             waiter.wait();
         }
+//        System.out.println("Check state:"+(exception==null)+"  available="+available+" "+isAvailable());
         return exception==null;
     }
 
     public boolean isAvailable(){
-        return available;
+        synchronized (avaiLock) {
+            return available;
+        }
     }
     public int getProtocolVersion(){
         return protocolVersion;
