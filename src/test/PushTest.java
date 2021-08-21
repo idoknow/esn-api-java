@@ -20,6 +20,6 @@ public class PushTest {
 
             }
         });
-        session.pushNotification("root","我那个乌龟","nb");
+        session.pushNotification("_global_","aaaaaaaaeeee","nb");
     }
 }
