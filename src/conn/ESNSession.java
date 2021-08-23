@@ -294,7 +294,7 @@ public class ESNSession implements Runnable{
 
 
     public void pushNotification(String target,String title,String content)throws Exception{
-        if (!available){
+        if (!isAvailable()){
             throw new Exception("session unavailable");
         }
         String token=AbstractPack.randToken();
@@ -304,36 +304,50 @@ public class ESNSession implements Runnable{
             throw new Exception(result.Error);
     }
     public void requestNotifications(int from,int limit)throws Exception{
-        if (!available){
+        if (!isAvailable()){
             throw new Exception("session unavailable");
         }
         String token=AbstractPack.randToken();
         new PackRequest(from,limit,token).writeTo(this,false);
         PackResult result=selectPack(token,PackResult.class);
-        if (!"".equals(result.Error))
+        if (!"".equals(result.Error)) {
             throw new Exception(result.Error);
+        }
+    }
+    public void requestRecent(int limit)throws Exception{
+        if (!isAvailable()){
+            throw new Exception("session unavailable");
+        }
+        String token=AbstractPack.randToken();
+        new PackReqRecent(limit,token).writeTo(this,false);
+        PackResult result=selectPack(token,PackResult.class);
+        if (!"".equals(result.Error)){
+            throw new Exception(result.Error);
+        }
     }
     public void addAccount(String user,String pass,String privilege)throws Exception{
-        if (!available){
+        if (!isAvailable()){
             throw new Exception("session unavailable");
         }
         String token=AbstractPack.randToken();
         new PackAccountOperation(PackAccountOperation.ADD_ACCOUNT,user,pass,privilege,false,token)
                 .writeTo(this,false);
         PackResult result=selectPack(token,PackResult.class);
-        if (!"".equals(result.Error))
+        if (!"".equals(result.Error)) {
             throw new Exception(result.Error);
+        }
     }
     public void removeAccount(String user,boolean kickAllSessionOfThisUser)throws Exception{
-        if (!available){
+        if (!isAvailable()){
             throw new Exception("session unavailable");
         }
         String token=AbstractPack.randToken();
         new PackAccountOperation(PackAccountOperation.REMOVE_ACCOUNT,user,"","",kickAllSessionOfThisUser,token)
                 .writeTo(this,false);
         PackResult result=selectPack(token,PackResult.class);
-        if (!"".equals(result.Error))
+        if (!"".equals(result.Error)) {
             throw new Exception(result.Error);
+        }
     }
 
 }
