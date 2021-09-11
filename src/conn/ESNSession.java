@@ -303,12 +303,32 @@ public class ESNSession implements Runnable{
         if (!"".equals(result.Error))
             throw new Exception(result.Error);
     }
-    public void requestNotifications(int from,int limit)throws Exception{
+
+
+    public int countNotifications(int from,int to)throws Exception{
         if (!isAvailable()){
             throw new Exception("session unavailable");
         }
         String token=AbstractPack.randToken();
-        new PackRequest(from,limit,token).writeTo(this,false);
+        new PackCount(from,to,token).writeTo(this,false);
+        PackResult result=selectPack(token,PackResult.class);
+        if (!"".equals(result.Error)){
+            throw new Exception(result.Error);
+        }
+        PackRespCount count=selectPack(token,PackRespCount.class);
+        return count.Amount;
+    }
+
+    @Deprecated
+    public void requestNotifications(int from,int limit)throws Exception{
+        requestNotifications(from,0,limit);
+    }
+    public void requestNotifications(int from,int to,int limit)throws Exception{
+        if (!isAvailable()){
+            throw new Exception("session unavailable");
+        }
+        String token=AbstractPack.randToken();
+        new PackRequest(from,to,limit,token).writeTo(this,false);
         PackResult result=selectPack(token,PackResult.class);
         if (!"".equals(result.Error)) {
             throw new Exception(result.Error);
