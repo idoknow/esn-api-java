@@ -119,7 +119,7 @@ public class ESNSession implements Runnable{
         synchronized (avaiLock) {
             this.listener = listener;
             String host = addr.split(":")[0];
-            int port = Integer.parseInt(addr.split(":")[1]);
+            int port = Integer.parseInt(addr.split(":").length==1?"3003":addr.split(":")[1]);
             Debug.debug("Dial:host:" + host + " port:" + port);
             socket = new Socket(host, port);
             dataInputStream = new DataInputStream(socket.getInputStream());
