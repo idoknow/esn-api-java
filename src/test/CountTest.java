@@ -6,9 +6,9 @@ import packs.PackRespNotification;
 import packs.PackResult;
 import util.Debug;
 
-public class PushTest {
-    public static void main(String[] args) throws Exception{
-//        Debug.debug=true;
+public class CountTest {
+    public static void main(String[] args)throws Exception {
+        Debug.debug=true;
         ESNSession session=new ESNSession("localhost:3003", "root", "changeMe", 5000, new ISessionListener() {
             @Override
             public void notificationReceived(PackRespNotification notification) {
@@ -20,6 +20,9 @@ public class PushTest {
 
             }
         });
-        session.pushNotification("_global_","aaaaaaaaeeee","nb");
+        for (int i=0;i<100;i++) {
+            int count = session.countNotifications(0, 100);
+            System.out.println(i+"$$$$$$$$$$$$$$$$count:" + count);
+        }
     }
 }

@@ -315,7 +315,9 @@ public class ESNSession implements Runnable{
         if (!"".equals(result.Error)){
             throw new Exception(result.Error);
         }
-        PackRespCount count=selectPack(token,PackRespCount.class);
+        Debug.debug("Selecting count pack...");
+        PackRespCount count=selectPack(token+"-1",PackRespCount.class);
+        Debug.debug("Count:"+count.Amount);
         return count.Amount;
     }
 
