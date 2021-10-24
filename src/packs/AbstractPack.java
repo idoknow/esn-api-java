@@ -2,10 +2,9 @@ package packs;
 
 import conn.ESNSession;
 import conn.NetPackage;
-import crypto.MD5Util;
 import util.Debug;
 
-import java.util.Date;
+import java.util.UUID;
 
 public class AbstractPack {
     protected int code=0;
@@ -19,7 +18,6 @@ public class AbstractPack {
         new NetPackage(code,this,crypto,session.getRsaKey()).writeTo(session);
     }
     public static String randToken(){
-        int randNum=(int)(Math.random()*10000);
-        return MD5Util.stringToMD5(new Date().getTime()+":java:"+randNum);
+        return UUID.randomUUID().toString();
     }
 }
